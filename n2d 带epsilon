@@ -1,0 +1,58 @@
+def epsilon_closure(nfa, states):
+    #构建epsilon闭包
+    closure = set(states)
+    stack = list(states)
+    while stack:
+        state = stack.pop()
+        if 'epsilon' in nfa[state]:
+            for epsilon_state in nfa[state]['epsilon']:
+                if epsilon_state not in closure:
+                    closure.add(epsilon_state)
+                    stack.append(epsilon_state)
+    return closure
+
+def move(nfa, states, symbol):
+    #用于计算通过给定的输入符号从 NFA 的状态集合中可以到达的状态集合
+    moved_states = set()
+    for state in states:
+        if symbol in nfa[state]:
+            moved_states = moved_states.union(nfa[state][symbol])
+    return moved_states
+
+def nfa_to_dfa(nfa):
+    initial_state = epsilon_closure(nfa, [0])
+    dfa = {str(initial_state): {}}
+    unmarked = [initial_state]
+
+    while unmarked:
+        T = unmarked.pop()
+        for _input in nfa[0].keys():  
+            U = move(nfa, T, _input)
+            U = epsilon_closure(nfa, U)
+            if str(U) not in dfa.keys() and U:
+                dfa[str(U)] = {}
+                unmarked.append(U)
+            if U:
+                dfa[str(T)][_input] = U
+
+    # 删除 DFA 中的 epsilon 转换
+    for state in dfa:
+        if 'epsilon' in dfa[state]:
+            del dfa[state]['epsilon']
+
+    return dfa
+
+def main():
+    nfa = {
+        0: {'a': {0, 1}, 'b': {0},'epsilon': {1}},
+        1: {'a': {2}, 'b': {2}},
+        2: {'a': {2}, 'b': {2},}
+    }
+    print("NFA:")
+    print(nfa)
+    dfa = nfa_to_dfa(nfa)
+    print("DFA:")
+    print(dfa)
+
+if __name__ == "__main__":
+    main()
