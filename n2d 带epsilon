@@ -1,67 +1,64 @@
 def nfa_to_epsilon_free_nfa(nfa):
-    # 辅助函数，用于获取通过ε转换可到达的所有状态
-    def get_epsilon_closure(states, visited=None):
-        if visited is None:
-            visited = set()
-        closure = set()
-        for state in states:
-            if state not in visited:
-                visited.add(state)
-                closure.add(state)
-                if 'epsilon' in nfa[state]:
-                    closure |= get_epsilon_closure(nfa[state]['epsilon'], visited)
-        return closure
-
-
     # 创建一个新的ε自由NFA
     epsilon_free_nfa = {}
 
-    # 对于每个状态，计算其ε闭包
-    for state in nfa:
-        epsilon_closure = get_epsilon_closure({state})
-
-        # 对于每个输入符号，找出所有可能的转换状态
-        for symbol in nfa[state]:
+    # 对于每个状态，找出所有可能的转换状态
+    for current_state, transitions in nfa.items():
+        # 初始化新NFA中的状态转换字典
+        if current_state not in epsilon_free_nfa:
+            epsilon_free_nfa[current_state] = {}
+        # 处理当前状态的所有符号转换
+        for symbol, target_states in transitions.items():
             if symbol != 'epsilon':
-                # 计算通过当前符号可到达的状态的ε闭包
-                target_states = get_epsilon_closure(nfa[state][symbol])
-                for target_state in target_states:
-                    # 添加到新的NFA中
-                    if state not in epsilon_free_nfa:
-                        epsilon_free_nfa[state] = {}
-                    if symbol not in epsilon_free_nfa[state]:
-                        epsilon_free_nfa[state][symbol] = set()
-                    epsilon_free_nfa[state][symbol].add(target_state)
+                # 计算目标状态集的ε闭包
+                epsilon_closure = get_epsilon_closure(nfa, target_states)
+                # 将计算得到的ε闭包作为新NFA中当前状态对应符号的转换目标
+                epsilon_free_nfa[current_state][symbol] = epsilon_closure
 
     return epsilon_free_nfa
 
+# 辅助函数，用于获取通过ε转换可到达的所有状态
+def get_epsilon_closure(nfa, states, visited=None):
+    if visited is None:
+        visited = set()
+    closure = set(states)
+    for state in states:
+        if state in closure and state not in visited:  # 确保只处理尚未访问的、在闭包内的状态
+            visited.add(state)
+            if 'epsilon' in nfa[state]:
+                closure |= get_epsilon_closure(nfa, nfa[state]['epsilon'], visited)
+    return closure
 
-
-def epsilon_free_nfa_to_dfa(nfa):
-    initial_state = set([0])
-    dfa = {str(initial_state): {}}
+def epsilon_free_nfa_to_dfa(epsilon_free_nfa):
+    # 获取NFA的初始状态
+    initial_state = frozenset(get_epsilon_closure(epsilon_free_nfa, {next(iter(epsilon_free_nfa))}))
+    print("Initial state:", initial_state)
+    dfa = {initial_state: {}}
     unmarked = [initial_state]
 
     while unmarked:
         T = unmarked.pop()
-        for _input in nfa[0].keys():
+        print("Current state in DFA:", T)
+        if T not in epsilon_free_nfa:
+            print("Warning: State", T, "not found in epsilon_free_nfa. Skipping...")
+            continue
+        for _input in epsilon_free_nfa[T].keys():
+            print("Processing input:", _input)
             U = set()
             for state in T:
-                if state in nfa and _input in nfa[state]:
-                    U = U.union(nfa[state][_input])
+                if state in epsilon_free_nfa and _input in epsilon_free_nfa[state]:
+                    U = U.union(epsilon_free_nfa[state][_input])
             U = frozenset(U)
-            if str(U) not in dfa.keys() and U:
-                dfa[str(U)] = {}
+            print("Next state:", U)
+            if U not in dfa.keys() and U:
+                dfa[U] = {}
                 unmarked.append(U)
             if U:
-                dfa[str(T)][_input] = str(U)
-
-    # 删除 DFA 中的 epsilon 转换
-    for state in dfa:
-        if 'epsilon' in dfa[state]:
-            del dfa[state]['epsilon']
+                dfa[T][_input] = U
+        print("DFA after processing inputs:", dfa)
 
     return dfa
+
 
 def tuple_to_dict(nfa_tuple):
     Q, Σ, δ, q0, F = nfa_tuple
@@ -74,14 +71,14 @@ def tuple_to_dict(nfa_tuple):
     return nfa_dict
 
 def dict_to_tuple(dfa_dict):
-    Q = set(frozenset(eval(q)) for q in dfa_dict.keys())  # 先将集合转换为frozenset
+    Q = set(key for key in dfa_dict.keys())  # 直接使用集合，而不是尝试eval转换
     Σ = set(next(iter(dfa_dict.values())).keys())
     δ = {}
     for state, transitions in dfa_dict.items():
         for symbol, next_state in transitions.items():
-            δ[frozenset(eval(state)), symbol] = frozenset(eval(next_state))  # 将集合转换为frozenset
+            δ[state, symbol] = next_state  # 这里不需要将集合转换为字符串，因为它们已经是集合类型
     q0 = next(iter(Q))
-    F = {state for state in Q if any(next_state in Q for next_state in dfa_dict[str(state)].values())}
+    F = {state for state in Q if any(next_state in Q for next_state in dfa_dict[state].values())}
     return Q, Σ, δ, q0, F
 
 def main():
@@ -98,8 +95,8 @@ def main():
     print(nfa)
     # 将nfa转化为不带epsilon的nfa
     epsilon_free_nfa = nfa_to_epsilon_free_nfa(nfa)
-   # print("epsilonless_nfa:")
-   # print(epsilon_free_nfa)
+    print("epsilonless_nfa:")
+    print(epsilon_free_nfa)
     # 将NFA转换为DFA
     dfa = epsilon_free_nfa_to_dfa(epsilon_free_nfa)
     print("DFA:")
