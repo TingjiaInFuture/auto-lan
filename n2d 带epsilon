@@ -31,18 +31,18 @@ def get_epsilon_closure(nfa, states, visited=None):
 
 def epsilon_free_nfa_to_dfa(epsilon_free_nfa):
     # 获取NFA的初始状态
-    initial_state = frozenset(get_epsilon_closure(epsilon_free_nfa, {next(iter(epsilon_free_nfa))}))
+    initial_state = get_epsilon_closure(epsilon_free_nfa, {0})
     print("Initial state:", initial_state)
-    dfa = {initial_state: {}}
+    dfa = {str(initial_state): {}}
     unmarked = [initial_state]
 
     while unmarked:
         T = unmarked.pop()
         print("Current state in DFA:", T)
-        if T not in epsilon_free_nfa:
+        if str(T) not in epsilon_free_nfa:
             print("Warning: State", T, "not found in epsilon_free_nfa. Skipping...")
             continue
-        for _input in epsilon_free_nfa[T].keys():
+        for _input in epsilon_free_nfa[str(T)].keys():
             print("Processing input:", _input)
             U = set()
             for state in T:
@@ -50,11 +50,11 @@ def epsilon_free_nfa_to_dfa(epsilon_free_nfa):
                     U = U.union(epsilon_free_nfa[state][_input])
             U = frozenset(U)
             print("Next state:", U)
-            if U not in dfa.keys() and U:
-                dfa[U] = {}
+            if str(U) not in dfa.keys() and U:
+                dfa[str(U)] = {}
                 unmarked.append(U)
             if U:
-                dfa[T][_input] = U
+                dfa[str(T)][_input] = str(U)
         print("DFA after processing inputs:", dfa)
 
     return dfa
