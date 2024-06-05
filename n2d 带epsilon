@@ -1,15 +1,40 @@
 def nfa_to_epsilon_free_nfa(nfa):
-    # 创建一个新的 NFA，其中每个状态都包含原始 NFA 中所有可以通过 ε 转换到达的状态
+    # 辅助函数，用于获取通过ε转换可到达的所有状态
+    def get_epsilon_closure(states, visited=None):
+        if visited is None:
+            visited = set()
+        closure = set()
+        for state in states:
+            if state not in visited:
+                visited.add(state)
+                closure.add(state)
+                if 'epsilon' in nfa[state]:
+                    closure |= get_epsilon_closure(nfa[state]['epsilon'], visited)
+        return closure
+
+
+    # 创建一个新的ε自由NFA
     epsilon_free_nfa = {}
+
+    # 对于每个状态，计算其ε闭包
     for state in nfa:
-        epsilon_free_nfa[state] = {}
+        epsilon_closure = get_epsilon_closure({state})
+
+        # 对于每个输入符号，找出所有可能的转换状态
         for symbol in nfa[state]:
-            epsilon_free_nfa[state][symbol] = nfa[state][symbol]
-        if 'epsilon' not in nfa[state]:
-            epsilon_free_nfa[state]['epsilon'] = set()
-        else:
-            epsilon_free_nfa[state]['epsilon'] = {state for state in nfa[state]['epsilon']}
+            if symbol != 'epsilon':
+                # 计算通过当前符号可到达的状态的ε闭包
+                target_states = get_epsilon_closure(nfa[state][symbol])
+                for target_state in target_states:
+                    # 添加到新的NFA中
+                    if state not in epsilon_free_nfa:
+                        epsilon_free_nfa[state] = {}
+                    if symbol not in epsilon_free_nfa[state]:
+                        epsilon_free_nfa[state][symbol] = set()
+                    epsilon_free_nfa[state][symbol].add(target_state)
+
     return epsilon_free_nfa
+
 
 
 def epsilon_free_nfa_to_dfa(nfa):
@@ -72,10 +97,11 @@ def main():
     print("NFA:")
     print(nfa)
     # 将nfa转化为不带epsilon的nfa
-    nfa = nfa_to_epsilon_free_nfa(nfa)
-
+    epsilon_free_nfa = nfa_to_epsilon_free_nfa(nfa)
+   # print("epsilonless_nfa:")
+   # print(epsilon_free_nfa)
     # 将NFA转换为DFA
-    dfa = epsilon_free_nfa_to_dfa(nfa)
+    dfa = epsilon_free_nfa_to_dfa(epsilon_free_nfa)
     print("DFA:")
     print(dfa)
 
