@@ -27,8 +27,8 @@ def epsilon_closure_of_set(nfa, state_set):
         closure.update(epsilon_closure(nfa, state))
     return closure
 
-def nfa_to_dfa(nfa,q0):
-    initial_state = epsilon_closure(nfa, q0)
+def nfa_to_dfa(nfa, start_state):
+    initial_state = epsilon_closure(nfa, start_state)
     dfa = {str(frozenset(initial_state)): {}}
     unmarked = [frozenset(initial_state)]
 
@@ -58,15 +58,15 @@ def tuple_to_dict(nfa_tuple):
         nfa_dict[state][symbol].update(next_states)
     return nfa_dict
 
-def dict_to_tuple(dfa_dict):
+def dict_to_tuple(dfa_dict, nfa_final_states):
     Q = set(frozenset(eval(q)) for q in dfa_dict.keys())
     Σ = set(next(iter(dfa_dict.values())).keys())
     δ = {}
     for state, transitions in dfa_dict.items():
         for symbol, next_state in transitions.items():
-            δ[frozenset(eval(state)), symbol] = frozenset(eval(next_state))
+           δ[frozenset(eval(state)), symbol] = frozenset(eval(next_state))
     q0 = next(iter(Q))
-    F = {state for state in Q if any(next_state in Q for next_state in dfa_dict[str(state)].values())}
+    F = {state for state in Q if any(nfa_final_state in state for nfa_final_state in nfa_final_states)}
     DFA2Graph(dfa_dict,q0,F)
     return Q, Σ, δ, q0, F
 
@@ -78,9 +78,9 @@ def DFA2Graph (dfa,q0,F):
     #     q = str(q).replace("frozenset", "").replace("(", "").replace(")", "")
     # print(type(q0))
     # print(type(F))
-    # print(type(F[0]))
+    # print(type(F))
     for outer_key in dfa:
-        # print(type(outer_key))
+        # print(outer_key)
         outer_key_name = outer_key.replace("frozenset", "").replace("(", "").replace(")", "")
         # dot.node(outer_key_name)
         if outer_key == str(q0):
@@ -88,7 +88,7 @@ def DFA2Graph (dfa,q0,F):
             dot.node('start', shape='none')
             # 添加一个指向起始节点的边
             dot.edge('start', outer_key_name)
-        if frozenset(outer_key) in F:
+        if eval(outer_key) in F:
             # 使用双圈框住节点
             dot.node(outer_key_name, shape='doublecircle')
         else:
@@ -163,7 +163,7 @@ def main():
     print(dfa)
 
     # 将字典形式的DFA转换回五元组形式
-    dfa_tuple = dict_to_tuple(dfa)
+    dfa_tuple = dict_to_tuple(dfa, F)
     print("DFA(五元组形式）:")
     print(dfa_tuple)
 
