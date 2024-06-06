@@ -24,10 +24,11 @@ def epsilon_closure_of_set(nfa, state_set):
         closure.update(epsilon_closure(nfa, state))
     return closure
 
-def nfa_to_dfa(nfa):
-    initial_state = epsilon_closure(nfa, 0)
+def nfa_to_dfa(nfa, start_state):
+    initial_state = epsilon_closure(nfa, start_state)
     dfa = {str(frozenset(initial_state)): {}}
     unmarked = [frozenset(initial_state)]
+
 
     while unmarked:
         T = unmarked.pop()
@@ -55,15 +56,15 @@ def tuple_to_dict(nfa_tuple):
         nfa_dict[state][symbol].update(next_states)
     return nfa_dict
 
-def dict_to_tuple(dfa_dict):
+def dict_to_tuple(dfa_dict, nfa_final_states):
     Q = set(frozenset(eval(q)) for q in dfa_dict.keys())
     Σ = set(next(iter(dfa_dict.values())).keys())
     δ = {}
     for state, transitions in dfa_dict.items():
         for symbol, next_state in transitions.items():
-            δ[frozenset(eval(state)), symbol] = frozenset(eval(next_state))
+           δ[frozenset(eval(state)), symbol] = frozenset(eval(next_state))
     q0 = next(iter(Q))
-    F = {state for state in Q if any(next_state in Q for next_state in dfa_dict[str(state)].values())}
+    F = {state for state in Q if any(nfa_final_state in state for nfa_final_state in nfa_final_states)}
     return Q, Σ, δ, q0, F
 
 def main():
@@ -80,12 +81,12 @@ def main():
     print(nfa)
 
     # 将NFA转换为DFA
-    dfa = nfa_to_dfa(nfa)
+    dfa = nfa_to_dfa(nfa, q0)
     print("DFA:")
     print(dfa)
 
     # 将字典形式的DFA转换回五元组形式
-    dfa_tuple = dict_to_tuple(dfa)
+    dfa_tuple = dict_to_tuple(dfa, F)
     print("DFA(五元组形式）:")
     print(dfa_tuple)
 
