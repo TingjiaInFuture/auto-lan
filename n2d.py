@@ -4,7 +4,7 @@ def epsilon_closure(nfa, state):
     """
     stack = [state]
     closure = {state}
-    
+
     while stack:
         current = stack.pop()
         if 'ε' in nfa[current]:
@@ -12,7 +12,7 @@ def epsilon_closure(nfa, state):
                 if next_state not in closure:
                     closure.add(next_state)
                     stack.append(next_state)
-    
+
     return closure
 
 def epsilon_closure_of_set(nfa, state_set):
@@ -28,7 +28,7 @@ def nfa_to_dfa(nfa):
     initial_state = epsilon_closure(nfa, 0)
     dfa = {str(frozenset(initial_state)): {}}
     unmarked = [frozenset(initial_state)]
-    
+
     while unmarked:
         T = unmarked.pop()
         T_closure = epsilon_closure_of_set(nfa, T)
@@ -44,7 +44,6 @@ def nfa_to_dfa(nfa):
                 dfa[str(U)] = {}
                 unmarked.append(U)
             dfa[str(frozenset(T_closure))][_input] = str(U)
-    
     return dfa
 
 def tuple_to_dict(nfa_tuple):
